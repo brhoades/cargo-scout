@@ -1,5 +1,11 @@
+use cargo_scout_macros::warn;
+
 use crate::config::Config;
-use std::path::{Path, PathBuf};
+use colored::Colorize;
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 /// This struct represents a Cargo project configuration.
 pub struct CargoConfig {
@@ -47,20 +53,48 @@ impl CargoConfig {
     /// # Ok::<(), cargo_scout_lib::Error>(())
     /// ```
     #[allow(clippy::missing_errors_doc)]
-    pub fn from_manifest_path(p: impl AsRef<Path> + Clone) -> Result<Self, crate::error::Error> {
+    pub fn from_manifest_path(
+        p: impl AsRef<Path> + Clone,
+        only_members: &[String],
+    ) -> Result<Self, crate::error::Error> {
         Ok(Self::from_manifest(
             p.clone(),
             cargo_toml::Manifest::from_path(p)?,
+            only_members,
         ))
     }
 
-    fn from_manifest(p: impl AsRef<Path>, m: cargo_toml::Manifest) -> Self {
+    fn from_manifest(
+        p: impl AsRef<Path>,
+        m: cargo_toml::Manifest,
+        only_members: &[String],
+    ) -> Self {
         if let Some(w) = m.workspace {
             Self {
                 root: std::fs::canonicalize(p.as_ref().parent().unwrap())
                     .unwrap()
                     .to_path_buf(),
-                members: w.members,
+                members: w
+                    .members
+                    .into_iter()
+                    .filter(|m| {
+                        if only_members.is_empty() {
+                            return true;
+                        }
+                        // return the last path segment as the member name
+                        let Ok(pb) = PathBuf::from_str(m) else {
+                            warn!("failed to parse member name {} in predicate", m);
+                            return false;
+                        };
+                        let Some(final_path_seg) = pb.file_name().and_then(|f| f.to_str()) else {
+                            warn!("failed to convert member {} pathbuf to str", m);
+                            return false;
+                        };
+
+                        // filter by the last named segment of the workspace member--- the manifest folder
+                        only_members.contains(&final_path_seg.to_owned())
+                    })
+                    .collect(),
             }
         } else {
             Self {
@@ -84,12 +118,12 @@ mod tests {
         let manifest = cargo_toml::Manifest::from_path("Cargo.toml").unwrap();
         // Make sure we actually parsed the manifest
         assert_eq!("cargo-scout-lib", manifest.clone().package.unwrap().name);
-        let config = CargoConfig::from_manifest(manifest);
+        let config = CargoConfig::from_manifest(manifest, &[]);
         assert_eq!(vec!["."], config.members());
     }
     #[test]
     fn test_not_workspace_path() {
-        let config = CargoConfig::from_manifest_path("Cargo.toml").unwrap();
+        let config = CargoConfig::from_manifest_path("Cargo.toml", &[]).unwrap();
         assert_eq!(vec!["."], config.members());
     }
     #[test]

@@ -30,6 +30,9 @@ struct FmtOptions {
     )]
     /// Set the target branch
     branch: String,
+    #[structopt(long = "member")]
+    /// Only run for these workspace members, if the crate is a workspace
+    members: Vec<String>,
     #[structopt(short = "t", long = "cargo-toml", default_value = "./Cargo.toml")]
     /// Pass the path of the `Cargo.toml` file
     cargo_toml: String,
@@ -53,6 +56,9 @@ struct LintOptions {
     #[structopt(long = "features")]
     /// Pass features to clippy
     features: Option<String>,
+    #[structopt(long = "member")]
+    /// Only run for these workspace members, if the crate is a workspace
+    members: Vec<String>,
     #[structopt(
         short = "b",
         long = "branch",
@@ -87,7 +93,7 @@ fn run_lint(opts: LintOptions) -> Result<(), Error> {
     let fail_if_errors = opts.without_error;
 
     let vcs = Git::with_target(opts.branch);
-    let config = CargoConfig::from_manifest_path(opts.cargo_toml)?;
+    let config = CargoConfig::from_manifest_path(opts.cargo_toml, &opts.members)?;
     let mut linter = Clippy::default();
     linter
         .set_verbose(opts.verbose)
@@ -105,7 +111,7 @@ fn run_fmt(opts: FmtOptions) -> Result<(), Error> {
     let fail_if_errors = opts.without_error;
 
     let vcs = Git::with_target(opts.branch);
-    let config = CargoConfig::from_manifest_path(opts.cargo_toml)?;
+    let config = CargoConfig::from_manifest_path(opts.cargo_toml, &opts.members)?;
     let linter = RustFmt::default();
 
     let scout = Scout::new(vcs, config, linter);

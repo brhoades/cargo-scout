@@ -1,6 +1,5 @@
 use super::{Section, VCS};
 use crate::error::Error;
-use crate::utils::get_absolute_file_path;
 use cargo_scout_macros::info;
 use colored::Colorize;
 use git2::{Delta, DiffOptions, Repository};

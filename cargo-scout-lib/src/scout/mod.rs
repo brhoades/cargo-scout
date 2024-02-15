@@ -1,10 +1,7 @@
 use crate::config::Config;
 use crate::linter::{Lint, Linter};
 use crate::vcs::{Section, VCS};
-use cargo_scout_macros::info;
-use colored::Colorize;
 use std::collections::HashSet;
-use std::path::PathBuf;
 
 pub struct Scout<V, C, L>
 where

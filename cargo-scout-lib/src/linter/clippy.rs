@@ -20,14 +20,6 @@ pub struct Clippy {
 #[derive(Deserialize, Clone)]
 /// A `Linter`s output is a `Vec<Lint>`
 struct Lint {
-    /// The package id
-    /// Example:
-    /// "cargo-scout-lib".to_string()
-    package_id: String,
-    /// The file the lint was reported on
-    /// Example:
-    /// Some("src/lib.rs".to_string())
-    src_path: Option<String>,
     /// The message structure
     message: Option<Message>,
 }
