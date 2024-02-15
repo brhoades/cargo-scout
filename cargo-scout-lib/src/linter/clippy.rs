@@ -16,6 +16,7 @@ pub struct Clippy {
     features: Option<String>,
     preview: bool,
     all_targets: bool,
+    target: Option<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -92,6 +93,11 @@ impl Clippy {
         self
     }
 
+    pub fn set_target(&mut self, target: Option<String>) -> &mut Self {
+        self.target = target;
+        self
+    }
+
     fn command_parameters(&self) -> Vec<&str> {
         let mut params = if self.preview {
             vec![
@@ -116,6 +122,9 @@ impl Clippy {
         }
         if self.all_targets {
             params.push("--all-targets");
+        }
+        if let Some(target) = &self.target {
+            params.append(&mut vec!["--target", &target]);
         }
         if let Some(features) = &self.features {
             params.append(&mut vec!["--features", features]);
