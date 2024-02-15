@@ -264,6 +264,7 @@ mod tests {
             "--message-format",
             "json",
             "--tests",
+            "--all-targets",
             "--",
             "-W",
             "clippy::all",
