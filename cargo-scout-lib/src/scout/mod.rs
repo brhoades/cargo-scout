@@ -3,6 +3,7 @@ use crate::linter::{Lint, Linter};
 use crate::vcs::{Section, VCS};
 use cargo_scout_macros::info;
 use colored::Colorize;
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 pub struct Scout<V, C, L>
@@ -105,7 +106,7 @@ fn files_match(lint: &Lint, git_section: &Section) -> bool {
 }
 
 fn lints_from_diff(lints: &[Lint], diffs: &[Section]) -> Vec<Lint> {
-    let mut lints_in_diff = Vec::new();
+    let mut lints_in_diff = HashSet::new();
     for diff in diffs {
         let diff_lints = lints.iter().filter(|lint| {
             /*
@@ -122,10 +123,10 @@ fn lints_from_diff(lints: &[Lint], diffs: &[Section]) -> Vec<Lint> {
             files_match(&lint, &diff) && lines_in_range(&lint, &diff)
         });
         for l in diff_lints {
-            lints_in_diff.push(l.clone());
+            lints_in_diff.insert(l.clone());
         }
     }
-    lints_in_diff
+    lints_in_diff.into_iter().collect()
 }
 
 #[cfg(test)]

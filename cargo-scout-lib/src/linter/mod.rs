@@ -10,7 +10,7 @@ pub trait Linter {
 
 /// This struct contains the lint,
 /// It may contain a message, and a location.
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub struct Lint {
     /// The message string
     /// Example:
@@ -22,7 +22,7 @@ pub struct Lint {
 }
 
 /// A `Location` has a file name, a start and an end line
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Hash, Eq)]
 pub struct Location {
     pub path: String,
     pub lines: [u32; 2],
