@@ -32,30 +32,60 @@ where
     #[allow(clippy::missing_errors_doc)]
     pub fn run(&self) -> Result<Vec<Lint>, crate::error::Error> {
         let current_dir = std::fs::canonicalize(std::env::current_dir()?)?;
-        let diff_sections = self.vcs.sections(current_dir.clone())?;
+        let diff_sections = self.vcs.sections(&self.vcs.root(&current_dir)?)?;
         let mut lints = Vec::new();
-        let config_members = self.config.members();
-        let members = config_members.iter().map(|m| {
-            let mut member = current_dir.clone();
-            member.push(m);
-            member
-        });
         // There's no need to run the linter on members where no changes have been made
-        let relevant_members = members.filter(|m| diff_in_member(m, &diff_sections));
+        let relevant_members = self
+            .config
+            .members()
+            .into_iter()
+            .map(|m| {
+                self.config
+                    .root()
+                    .join(m)
+                    .to_str()
+                    .map(ToString::to_string)
+                    .unwrap()
+            })
+            .filter(|m| diff_in_member(m, &diff_sections));
         for m in relevant_members {
-            lints.extend(self.linter.lints(current_dir.clone().join(m))?);
+            lints.extend(
+                self.linter
+                    .lints(current_dir.clone().join("rippling-rust/").join(m))?,
+            );
         }
-        info!("[Scout] - checking for intersections");
+        // strip the full rippling-rust path from lints
+        let root = self.config.root();
+
+        let lints = lints
+            .into_iter()
+            .map(|mut l| {
+                l.location.path = root
+                    .clone()
+                    .join(l.location.path)
+                    .to_str()
+                    .unwrap()
+                    .to_owned();
+                l
+            })
+            .collect::<Vec<_>>();
+
         Ok(lints_from_diff(&lints, &diff_sections))
     }
 }
 
-fn diff_in_member(member: &PathBuf, sections: &[Section]) -> bool {
-    if let Some(m) = member.to_str() {
-        for s in sections {
-            if s.file_name.starts_with(&m) {
-                return true;
-            }
+fn diff_in_member(member: &String, sections: &[Section]) -> bool {
+    for s in sections {
+        /*
+        info!(
+            "check if diff path {} is in crate {} => {}",
+            s.file_name,
+            member,
+            s.file_name.starts_with(member)
+        );
+        */
+        if s.file_name.starts_with(member) {
+            return true;
         }
     }
     false
@@ -77,9 +107,20 @@ fn files_match(lint: &Lint, git_section: &Section) -> bool {
 fn lints_from_diff(lints: &[Lint], diffs: &[Section]) -> Vec<Lint> {
     let mut lints_in_diff = Vec::new();
     for diff in diffs {
-        let diff_lints = lints
-            .iter()
-            .filter(|lint| files_match(&lint, &diff) && lines_in_range(&lint, &diff));
+        let diff_lints = lints.iter().filter(|lint| {
+            /*
+            println!(
+                "{}:{}-{} match {}:{}-{}",
+                lint.location.path,
+                lint.location.lines[0],
+                lint.location.lines[1],
+                diff.file_name,
+                diff.line_start,
+                diff.line_end
+            );
+            */
+            files_match(&lint, &diff) && lines_in_range(&lint, &diff)
+        });
         for l in diff_lints {
             lints_in_diff.push(l.clone());
         }

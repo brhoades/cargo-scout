@@ -1,8 +1,12 @@
 pub mod git;
 use crate::error::Error;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub trait VCS {
+    #[allow(clippy::missing_errors_doc)]
+    fn root<P>(&self, repo_path: P) -> Result<PathBuf, Error>
+    where
+        P: AsRef<Path>;
     #[allow(clippy::missing_errors_doc)]
     fn sections<P>(&self, repo_path: P) -> Result<Vec<Section>, Error>
     where

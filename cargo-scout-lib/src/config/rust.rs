@@ -1,8 +1,9 @@
 use crate::config::Config;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// This struct represents a Cargo project configuration.
 pub struct CargoConfig {
+    root: PathBuf,
     members: Vec<String>,
 }
 
@@ -10,6 +11,11 @@ impl Config for CargoConfig {
     #[must_use]
     fn members(&self) -> Vec<String> {
         self.members.clone()
+    }
+
+    #[must_use]
+    fn root(&self) -> &PathBuf {
+        &self.root
     }
 }
 
@@ -41,15 +47,26 @@ impl CargoConfig {
     /// # Ok::<(), cargo_scout_lib::Error>(())
     /// ```
     #[allow(clippy::missing_errors_doc)]
-    pub fn from_manifest_path(p: impl AsRef<Path>) -> Result<Self, crate::error::Error> {
-        Ok(Self::from_manifest(cargo_toml::Manifest::from_path(p)?))
+    pub fn from_manifest_path(p: impl AsRef<Path> + Clone) -> Result<Self, crate::error::Error> {
+        Ok(Self::from_manifest(
+            p.clone(),
+            cargo_toml::Manifest::from_path(p)?,
+        ))
     }
 
-    fn from_manifest(m: cargo_toml::Manifest) -> Self {
+    fn from_manifest(p: impl AsRef<Path>, m: cargo_toml::Manifest) -> Self {
         if let Some(w) = m.workspace {
-            Self { members: w.members }
+            Self {
+                root: std::fs::canonicalize(p.as_ref().parent().unwrap())
+                    .unwrap()
+                    .to_path_buf(),
+                members: w.members,
+            }
         } else {
             Self {
+                root: std::fs::canonicalize(p.as_ref().parent().unwrap())
+                    .unwrap()
+                    .to_path_buf(),
                 // Project root only
                 members: vec![".".to_string()],
             }

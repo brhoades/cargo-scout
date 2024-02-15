@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 pub mod rust;
 
 /// This trait is responsible for providing a list of members,
@@ -38,7 +40,7 @@ pub trait Config {
     /// # Example with two subdirectories
     /// ```
     /// # use cargo_scout_lib::config::Config;
-    /// # struct CustomConfig{}    
+    /// # struct CustomConfig{}
     /// # impl CustomConfig {
     /// #    fn new() -> Self {
     /// #        Self {}
@@ -75,4 +77,7 @@ pub trait Config {
     /// }
     /// ```
     fn members(&self) -> Vec<String>;
+
+    /// returns the workspace root
+    fn root(&self) -> &PathBuf;
 }

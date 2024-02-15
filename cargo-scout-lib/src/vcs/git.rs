@@ -4,7 +4,7 @@ use crate::utils::get_absolute_file_path;
 use cargo_scout_macros::info;
 use colored::Colorize;
 use git2::{Delta, DiffOptions, Repository};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub struct Git {
     target_branch: String,
@@ -33,6 +33,7 @@ impl VCS for Git {
     {
         info!("[VCS] - Getting diff with target {}", &self.target_branch);
         let repo = Repository::discover(repo_path)?;
+        let root = repo.path().parent().unwrap().to_path_buf();
         let tree = repo.revparse_single(&self.target_branch)?.peel_to_tree()?;
         let mut config = DiffOptions::default();
         config
@@ -50,14 +51,12 @@ impl VCS for Git {
                         if let Some(file_path) = delta.new_file().path() {
                             // Path returns the path of the entry relative to the working directory.
                             // We can get the absolute path
-                            if let Ok(file_name) = get_absolute_file_path(&file_path) {
-                                if file_name.ends_with(".rs") {
-                                    sections.push(Section {
-                                        file_name,
-                                        line_start: hunk.new_start(),
-                                        line_end: hunk.new_start() + hunk.new_lines(),
-                                    });
-                                }
+                            if file_path.to_str().unwrap().ends_with(".rs") {
+                                sections.push(Section {
+                                    file_name: root.join(file_path).to_str().unwrap().to_string(),
+                                    line_start: hunk.new_start(),
+                                    line_end: hunk.new_start() + hunk.new_lines(),
+                                });
                             }
                         }
                     }
@@ -68,6 +67,19 @@ impl VCS for Git {
             None,
         )?;
         Ok(sections)
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    fn root<P>(&self, repo_path: P) -> Result<PathBuf, Error>
+    where
+        P: AsRef<Path>,
+    {
+        let repo = Repository::discover(repo_path)?;
+        Ok(repo
+            .path()
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("/"))) // return the parent of the .git dir
     }
 }
 

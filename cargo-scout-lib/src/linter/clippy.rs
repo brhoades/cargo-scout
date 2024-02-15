@@ -143,6 +143,12 @@ impl Clippy {
     // cannot be easily unit tested
     #[cfg(not(tarpaulin_include))]
     fn clippy(&self, path: impl AsRef<Path>) -> Result<String, crate::error::Error> {
+        println!(
+            "running in {:?}: \"cargo {}\"",
+            path.as_ref(),
+            self.command_parameters().join(" ")
+        );
+
         let clippy_pedantic_output = Command::new("cargo")
             .current_dir(path)
             .args(self.command_parameters())

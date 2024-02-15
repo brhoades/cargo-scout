@@ -32,6 +32,7 @@ impl RustFmt {
     // cannot be easily unit tested
     #[cfg(not(tarpaulin_include))]
     fn fmt(path: impl AsRef<Path>) -> Result<String, Error> {
+        println!("rustfmt init");
         let fmt_output = Command::new("cargo")
             .current_dir(path)
             .args(Self::command_parameters())
