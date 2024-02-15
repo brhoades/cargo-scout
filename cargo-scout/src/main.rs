@@ -53,6 +53,9 @@ struct LintOptions {
     #[structopt(long = "all-features")]
     /// Pass the all features flag to clippy
     all_features: bool,
+    #[structopt(long = "all-targets")]
+    /// Pass the all targets flag to clippy
+    all_targets: bool,
     #[structopt(long = "features")]
     /// Pass features to clippy
     features: Option<String>,
@@ -100,7 +103,8 @@ fn run_lint(opts: LintOptions) -> Result<(), Error> {
         .set_no_default_features(opts.no_default_features)
         .set_all_features(opts.all_features)
         .set_features(opts.features)
-        .set_preview(opts.preview);
+        .set_preview(opts.preview)
+        .set_all_targets(opts.all_targets);
     let scout = Scout::new(vcs, config, linter);
     let relevant_lints = scout.run()?;
     return_warnings(&relevant_lints, fail_if_errors)
